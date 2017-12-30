@@ -204,12 +204,15 @@ int __stdcall main(const int argc, char** argv)
 	{
 		_enable();
 		using namespace drvmap::structs;
-		status = PsCreateSystemThread(&handle, GENERIC_READ, &obAttr, nullptr, nullptr, (void(*)(void*))entry_point, nullptr);
+		/*status = PsCreateSystemThread(&handle, GENERIC_READ, &obAttr, nullptr, nullptr, (void(*)(void*))entry_point, nullptr);
 
 		if(NT_SUCCESS(status))
 		{
 			ZwClose(handle);
 		}
+		*/
+		((PDRIVER_INITIALIZE)entry_point)(nullptr, nullptr);
+
 		_disable();
 	});
 

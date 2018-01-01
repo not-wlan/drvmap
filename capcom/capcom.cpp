@@ -1,7 +1,13 @@
+#define WIN32_NO_STATUS
 #include "capcom.hpp"
 #include <intrin.h>
+#include <cassert>
+#include <Windows.h>
+#include <Winternl.h>
 #pragma intrinsic(_disable)  
 #pragma intrinsic(_enable)  
+#undef WIN32_NO_STATUS
+#include <ntstatus.h>
 
 namespace capcom
 {
@@ -30,8 +36,6 @@ namespace capcom
 	};
 #pragma pack(pop)
 
-
-
 	unsigned long capcom_run(const driver_handle device, user_function payload_function)
 	{
 		g_user_function = std::make_unique<user_function>(payload_function);
@@ -43,22 +47,141 @@ namespace capcom
 		return GetLastError();
 	}
 
-	uintptr_t get_system_routine(const driver_handle device, const std::wstring& name)
+	uintptr_t capcom_driver::get_system_routine_internal(const std::wstring& name)
 	{
-		UNICODE_STRING routine_name;
-		RtlInitUnicodeString(&routine_name, name.c_str());
-		uintptr_t result = 0;
+		uintptr_t address = { 0 };
+		UNICODE_STRING unicode_name = { 0 };
 
-		const auto kernel_result = capcom_run(device, [&routine_name, &result](auto mm_get_routine) {
-			_enable();
-			result = (uintptr_t)(mm_get_routine(&routine_name));
-			_disable();
-		});
+		RtlInitUnicodeString(&unicode_name, name.c_str());
 
-		//RtlFreeUnicodeString(&routine_name);
+		const auto fetch = [&unicode_name, &address](kernel::MmGetSystemRoutineAddressFn mm_get_system_routine)
+		{
+			address = (uintptr_t)mm_get_system_routine(&unicode_name);
+		};
 
-		if (kernel_result != 0)
-			result = 0;
-		return result;
+		run(fetch);
+
+		return address;
 	}
+
+	capcom_driver::capcom_driver()
+	{
+		m_capcom_driver = driver_handle(CreateFile(device_name, FILE_ALL_ACCESS, FILE_SHARE_READ, nullptr, FILE_OPEN, FILE_ATTRIBUTE_NORMAL, nullptr), CloseHandle);
+		assert(m_capcom_driver.get() != INVALID_HANDLE_VALUE);
+	}
+
+	void capcom_driver::run(user_function payload, const bool enable_interrupts)
+	{
+		const auto wrapper = [&payload](kernel::MmGetSystemRoutineAddressFn address)
+		{
+			_enable();
+			payload(address);
+			_disable();
+		};
+
+		if (enable_interrupts)
+			capcom_run(m_capcom_driver, wrapper);
+		else
+			capcom_run(m_capcom_driver, payload);
+	}
+
+	uintptr_t capcom_driver::get_system_routine(const std::wstring& name)
+	{
+		const auto iter = m_functions.find(name);
+		
+		if(iter == m_functions.end())
+		{
+			const auto address = get_system_routine_internal(name);
+			if (address != 0)
+				m_functions.insert_or_assign(name, address);
+
+			return address;
+		}
+
+		return iter->second;
+	}
+
+	uintptr_t capcom_driver::get_kernel_module(const std::string_view kmodule)
+	{
+		NTSTATUS status = 0x0;
+		ULONG bytes = 0;
+		std::vector<uint8_t> data;
+		unsigned long required = 0;
+
+
+		while ((status = NtQuerySystemInformation((SYSTEM_INFORMATION_CLASS)11, data.data(), (ULONG)data.size(), &required)) == STATUS_INFO_LENGTH_MISMATCH) {
+			data.resize(required);
+		}
+
+		if (!NT_SUCCESS(status))
+		{
+			return 0;
+		}
+		const auto modules = reinterpret_cast<kernel::PRTL_PROCESS_MODULES>(data.data());
+		for (unsigned i = 0; i < modules->NumberOfModules; ++i)
+		{
+			const auto& driver = modules->Modules[i];
+			const auto image_base = reinterpret_cast<uintptr_t>(driver.ImageBase);
+			std::string base_name = reinterpret_cast<char*>((uintptr_t)driver.FullPathName + driver.OffsetToFileName);
+			const auto offset = base_name.find_last_of(".");
+
+			if (kmodule == base_name)
+				return reinterpret_cast<uintptr_t>(driver.ImageBase);
+
+			if (offset != base_name.npos)
+				base_name = base_name.erase(offset, base_name.size() - offset);
+
+			if (kmodule == base_name)
+				return reinterpret_cast<uintptr_t>(driver.ImageBase);
+		}
+
+		return 0;
+	}
+
+	uintptr_t capcom_driver::get_export(uintptr_t base, const char* name)
+	{
+		auto RtlFindExportedRoutineByName = reinterpret_cast<kernel::RtlFindExportedRoutineByNameFn>(get_system_routine(kernel::names::RtlFindExportedRoutineByName));
+		assert(RtlFindExportedRoutineByName != nullptr);
+
+		uintptr_t address = { 0 };
+		
+		const auto _get_export = [&name, &base, &RtlFindExportedRoutineByName, &address](auto mm_get)
+		{
+			address = (uintptr_t)RtlFindExportedRoutineByName((void*)base, name);
+		};
+
+		run(_get_export);
+
+		assert(address != 0);
+		return address;
+	}
+
+	uintptr_t capcom_driver::allocate_pool(size_t size, uint16_t pooltag, kernel::POOL_TYPE pool_type, const bool page_align, size_t* out_size)
+	{
+		constexpr auto page_size = 0x1000u;
+
+		uintptr_t address = { 0 };
+
+		if(page_align && size % page_size != 0)
+		{
+			auto pages = size / page_size;
+			size = page_size * ++pages;
+		}
+
+		auto ex_allocate_pool_with_tag = reinterpret_cast<kernel::ExAllocatePoolWithTagFn>(get_system_routine(kernel::names::ExAllocatePoolWithTag));
+		assert(ex_allocate_pool_with_tag != nullptr);
+
+		const auto allocate_fn = [&size, &pooltag, &pool_type, &ex_allocate_pool_with_tag, &address](auto mm_get)
+		{
+			address = reinterpret_cast<uintptr_t>(ex_allocate_pool_with_tag(pool_type, size, pooltag));
+		};
+
+		run(allocate_fn);
+
+		if (out_size != nullptr)
+			*out_size = size;
+
+		return address;
+	}
+
 }

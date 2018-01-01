@@ -114,4 +114,5 @@ namespace drvmap::structs
 	using ZwCloseFn = NTSTATUS(NTAPI*)(HANDLE);
 	using ObReferenceObjectByHandleFn = NTSTATUS (NTAPI*)(HANDLE, ACCESS_MASK, POBJECT_TYPE, KPROCESSOR_MODE, PVOID*,PVOID);
 	using RtlCopyMemoryFn = void(*)(VOID UNALIGNED*, const VOID UNALIGNED*, SIZE_T);
+	using RtlZeroMemoryFn = VOID(*)(_Out_ VOID UNALIGNED *,	_In_  SIZE_T);
 }

@@ -81,9 +81,19 @@ int __stdcall main(const int argc, char** argv)
 	if(NT_SUCCESS(status))
 	{
 		printf("[+] successfully created driver object!\n");
+
+		const auto _RtlZeroMemory = capcom->get_system_routine<drvmap::structs::RtlZeroMemoryFn>(L"RtlZeroMemory");
+		const auto header_size = driver.header_size();
+
+		capcom->run([&_RtlZeroMemory, &kernel_memory, &header_size](auto mm_get) {
+			_RtlZeroMemory((void*)kernel_memory, header_size);
+		});
+
+		printf("[+] wiped headers!");
 	} else
 	{
 		printf("[-] creating of driver object failed! 0x%I32X\n", status);
+
 	}
 
 	return 0;

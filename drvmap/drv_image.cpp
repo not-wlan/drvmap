@@ -218,4 +218,9 @@ namespace drvmap
 	{
 		return m_image_mapped.data();
 	}
+
+	size_t drv_image::header_size()
+	{
+		return m_nt_headers->OptionalHeader.SizeOfHeaders;
+	}
 }

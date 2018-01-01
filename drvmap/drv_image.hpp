@@ -38,5 +38,6 @@ namespace drvmap
 		void fix_imports(const std::function<uintptr_t(std::string_view)> get_module, const std::function<uintptr_t(uintptr_t, const char*)> get_function, const std::function<uintptr_t(uintptr_t, uint16_t)> get_function_ord );
 		void add_cookie(uintptr_t base);
 		void* data();
+		size_t header_size();
 	};
 }

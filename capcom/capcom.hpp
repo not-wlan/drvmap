@@ -29,6 +29,7 @@ namespace capcom
 		uintptr_t get_system_routine(const std::wstring& name);
 		static uintptr_t get_kernel_module(const std::string_view kmodule);
 		uintptr_t get_export(uintptr_t base, const char* name);
+		uintptr_t allocate_pool(size_t size, kernel::POOL_TYPE pool_type, const bool page_align, size_t* out_size);
 		uintptr_t allocate_pool(std::size_t size, uint16_t pooltag, kernel::POOL_TYPE = kernel::NonPagedPool, bool page_align = false, size_t* out_size = nullptr);
 		template <typename T>
 		T get_system_routine(const std::wstring& name)

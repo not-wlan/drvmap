@@ -29,9 +29,9 @@ int __stdcall main(const int argc, char** argv)
 		return capcom->get_export(base, name);
 	};
 
-	const std::function<uintptr_t(uintptr_t, uint16_t)> _get_export_ordinal = [&capcom](uintptr_t base, uint16_t)
+	const std::function<uintptr_t(uintptr_t, uint16_t)> _get_export_ordinal = [&capcom](uintptr_t base, uint16_t ord)
 	{
-		return 0;
+		return capcom->get_export(base, ord);
 	};
 
 	std::vector<uint8_t> driver_image;
@@ -71,9 +71,9 @@ int __stdcall main(const int argc, char** argv)
 
 	auto status = STATUS_SUCCESS;
 
-	capcom->run([&entry_point, &status](auto mm_get) {
+	capcom->run([&entry_point, &status, &kernel_memory, &size](auto mm_get) {
 		using namespace drvmap::structs;
-		status = ((PDRIVER_INITIALIZE)entry_point)(nullptr, nullptr);
+		status = ((PDRIVER_INITIALIZE)entry_point)((_DRIVER_OBJECT*)kernel_memory, (PUNICODE_STRING)size);
 	});
 
 	if(NT_SUCCESS(status))

@@ -15,7 +15,6 @@ namespace drvmap
 		assert(m_nt_headers->Signature == IMAGE_NT_SIGNATURE);
 		assert(m_nt_headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
 		m_section_header = reinterpret_cast<IMAGE_SECTION_HEADER*>((uintptr_t)(&m_nt_headers->OptionalHeader) + m_nt_headers->FileHeader.SizeOfOptionalHeader);
-
 	}
 
 	size_t drv_image::size() const
@@ -49,7 +48,7 @@ namespace drvmap
 		//m_nt_headers = (PIMAGE_NT_HEADERS64)((uintptr_t)m_dos_header + m_dos_header->e_lfanew);
 	}
 
-	bool drv_image::process_relocation(uintptr_t image_base_delta, uint16_t data, uint8_t* relocation_base) const
+	bool drv_image::process_relocation(uintptr_t image_base_delta, uint16_t data, uint8_t* relocation_base)
 	{
 #define IMR_RELOFFSET(x)			(x & 0xFFF)
 
@@ -146,8 +145,6 @@ namespace drvmap
 		return (T*)(uintptr_t)base + offset;
 	}
 
-
-
 	void drv_image::fix_imports(const std::function<uintptr_t(std::string_view)> get_module, const std::function<uintptr_t(uintptr_t, const char*)> get_function, const std::function<uintptr_t(uintptr_t, uint16_t)> get_function_ord){
 
 		ULONG size;
@@ -189,7 +186,7 @@ namespace drvmap
 
 				if(ordinal)
 				{
-					auto import_ordinal = static_cast<uint16_t>(image_thunk_data->u1.Ordinal & 0xffff);
+					const auto import_ordinal = static_cast<uint16_t>(image_thunk_data->u1.Ordinal & 0xffff);
 					function_address = get_function_ord(module_base, import_ordinal);
 					printf("function: %hu [0x%I64X]\n", import_ordinal, function_address);
 				} else

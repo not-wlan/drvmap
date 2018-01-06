@@ -57,11 +57,13 @@ namespace kernel
 	using ExAllocatePoolWithTagFn = PVOID(*)(POOL_TYPE, SIZE_T, ULONG);
 	using RtlFindExportedRoutineByNameFn = void*(__fastcall*)(void *, const char *);
 	using ExAllocatePoolFn = PVOID(*)(POOL_TYPE, SIZE_T);
+	using DbgPrintFn = ULONG(*)(const char*, ...);
 
 	namespace names
 	{
 		constexpr auto RtlFindExportedRoutineByName = L"RtlFindExportedRoutineByName";
 		constexpr auto ExAllocatePoolWithTag = L"ExAllocatePoolWithTag";
 		constexpr auto ExAllocatePool = L"ExAllocatePool";
+		constexpr auto DbgPrint = L"DbgPrint";
 	}
 }

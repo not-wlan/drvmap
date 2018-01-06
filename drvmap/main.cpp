@@ -38,7 +38,7 @@ int __stdcall main(const int argc, char** argv)
 	drvmap::util::open_binary_file(argv[1], driver_image);
 	drvmap::drv_image driver(driver_image);
 
-	const auto kernel_memory = capcom->allocate_pool(driver.size(), kernel::NonPagedPool, true, NULL);
+	const auto kernel_memory = capcom->allocate_pool(driver.size(), kernel::NonPagedPool, true, nullptr);
 
 	assert(kernel_memory != 0);
 

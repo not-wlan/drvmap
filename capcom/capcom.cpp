@@ -173,7 +173,7 @@ namespace capcom
 
 		const auto allocate_fn = [&size, &pool_type, &ex_allocate_pool, &address](auto mm_get)
 		{
-			address = reinterpret_cast<uintptr_t>(ex_allocate_pool(pool_type, size);
+			address = reinterpret_cast<uintptr_t>(ex_allocate_pool(pool_type, size));
 		};
 
 		run(allocate_fn);

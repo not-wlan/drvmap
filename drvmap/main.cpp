@@ -8,8 +8,6 @@
 #pragma comment(lib, "capcom.lib")
 
 constexpr auto page_size = 0x1000u;
-constexpr uint16_t pool_tag = uint16_t('naJ?');
-
 
 int __stdcall main(const int argc, char** argv)
 {
@@ -40,7 +38,7 @@ int __stdcall main(const int argc, char** argv)
 	drvmap::util::open_binary_file(argv[1], driver_image);
 	drvmap::drv_image driver(driver_image);
 
-	const auto kernel_memory = capcom->allocate_pool(driver.size(), pool_tag, kernel::NonPagedPool, true);
+	const auto kernel_memory = capcom->allocate_pool(driver.size(), kernel::NonPagedPool, true);
 
 	assert(kernel_memory != 0);
 

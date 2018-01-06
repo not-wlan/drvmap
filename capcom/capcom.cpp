@@ -156,6 +156,34 @@ namespace capcom
 		return address;
 	}
 
+	uintptr_t capcom_driver::allocate_pool(size_t size,  kernel::POOL_TYPE pool_type, const bool page_align, size_t* out_size)
+	{
+		constexpr auto page_size = 0x1000u;
+
+		uintptr_t address = { 0 };
+
+		if (page_align && size % page_size != 0)
+		{
+			auto pages = size / page_size;
+			size = page_size * ++pages;
+		}
+
+		auto ex_allocate_pool = reinterpret_cast<kernel::ExAllocatePoolFn>(get_system_routine(kernel::names::ExAllocatePool));
+		assert(ex_allocate_pool != nullptr);
+
+		const auto allocate_fn = [&size, &pool_type, &ex_allocate_pool, &address](auto mm_get)
+		{
+			address = reinterpret_cast<uintptr_t>(ex_allocate_pool(pool_type, size);
+		};
+
+		run(allocate_fn);
+
+		if (out_size != nullptr)
+			*out_size = size;
+
+		return address;
+	}
+
 	uintptr_t capcom_driver::allocate_pool(size_t size, uint16_t pooltag, kernel::POOL_TYPE pool_type, const bool page_align, size_t* out_size)
 	{
 		constexpr auto page_size = 0x1000u;

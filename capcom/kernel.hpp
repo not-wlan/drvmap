@@ -56,10 +56,12 @@ namespace kernel
 	using MmGetSystemRoutineAddressFn = PVOID(NTAPI*)(PUNICODE_STRING);
 	using ExAllocatePoolWithTagFn = PVOID(*)(POOL_TYPE, SIZE_T, ULONG);
 	using RtlFindExportedRoutineByNameFn = void*(__fastcall*)(void *, const char *);
+	using ExAllocatePoolFn = PVOID(*)(POOL_TYPE, SIZE_T);
 
 	namespace names
 	{
 		constexpr auto RtlFindExportedRoutineByName = L"RtlFindExportedRoutineByName";
 		constexpr auto ExAllocatePoolWithTag = L"ExAllocatePoolWithTag";
+		constexpr auto ExAllocatePool = L"ExAllocatePool";
 	}
 }

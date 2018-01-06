@@ -26,7 +26,7 @@ namespace drvmap
 		size_t size() const;
 		uintptr_t entry_point() const;
 		void map();
-		bool process_relocation(size_t image_base_delta, uint16_t data, uint8_t* relocation_base) const;
+		static bool process_relocation(size_t image_base_delta, uint16_t data, uint8_t* relocation_base);
 		void relocate(uintptr_t base) const;
 
 		template<typename T>

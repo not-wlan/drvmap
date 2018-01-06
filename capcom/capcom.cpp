@@ -138,6 +138,53 @@ namespace capcom
 		return 0;
 	}
 
+	size_t capcom_driver::get_header_size(uintptr_t base)
+	{
+		uintptr_t header_size = { 0 };
+
+		run([&base, &header_size](auto mm_get)
+		{
+			const auto dos_header = (PIMAGE_DOS_HEADER)base;
+			if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+				return;
+			const auto nt_headers = (PIMAGE_NT_HEADERS64)base;
+			if (nt_headers->Signature != IMAGE_NT_SIGNATURE || nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+				return;
+			header_size = nt_headers->OptionalHeader.SizeOfHeaders;
+		});
+
+		return header_size;
+	}
+
+	uintptr_t capcom_driver::get_export(uintptr_t base, uint16_t ordinal)
+	{
+		uintptr_t address = { 0 };
+		
+		run([&base, &ordinal,&address](auto mm_get)
+		{
+			const auto dos_header = (PIMAGE_DOS_HEADER)base;
+			if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+				return;
+			const auto nt_headers = (PIMAGE_NT_HEADERS64)(base + dos_header->e_lfanew);
+			if (nt_headers->Signature != IMAGE_NT_SIGNATURE)
+				return;
+			if (nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+				return;
+			const auto export_ptr = (PIMAGE_EXPORT_DIRECTORY)(nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress + base);
+			auto address_of_funcs = (PULONG)(export_ptr->AddressOfFunctions + base);
+			for (ULONG i = 0; i < export_ptr->NumberOfFunctions; ++i)
+			{
+				if (export_ptr->Base + (uint16_t)i == ordinal) {
+					address = address_of_funcs[i] + base;
+					return;
+				}
+			}
+		});
+
+		assert(address != 0);
+		return address;
+	}
+
 	uintptr_t capcom_driver::get_export(uintptr_t base, const char* name)
 	{
 		auto RtlFindExportedRoutineByName = reinterpret_cast<kernel::RtlFindExportedRoutineByNameFn>(get_system_routine(kernel::names::RtlFindExportedRoutineByName));
@@ -149,7 +196,7 @@ namespace capcom
 		{
 			address = (uintptr_t)RtlFindExportedRoutineByName((void*)base, name);
 		};
-
+		
 		run(_get_export);
 
 		assert(address != 0);
@@ -173,7 +220,7 @@ namespace capcom
 
 		const auto allocate_fn = [&size, &pool_type, &ex_allocate_pool, &address](auto mm_get)
 		{
-			address = reinterpret_cast<uintptr_t>(ex_allocate_pool(pool_type, size);
+			address = reinterpret_cast<uintptr_t>(ex_allocate_pool(pool_type, size));
 		};
 
 		run(allocate_fn);
@@ -183,6 +230,8 @@ namespace capcom
 
 		return address;
 	}
+
+
 
 	uintptr_t capcom_driver::allocate_pool(size_t size, uint16_t pooltag, kernel::POOL_TYPE pool_type, const bool page_align, size_t* out_size)
 	{

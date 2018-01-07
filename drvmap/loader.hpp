@@ -5,7 +5,7 @@
 
 namespace loader
 {
-	inline bool load_vuln_driver(uint8_t* driver, int size, std::wstring path, std::wstring service)
+	inline bool load_vuln_driver(uint8_t* driver, int size, const std::wstring& path, const std::wstring& service)
 	{
 		std::ofstream file(path.c_str(), std::ios_base::out | std::ios_base::binary);
 		file.write((char*)driver, size);
@@ -13,7 +13,7 @@ namespace loader
 		return native::load_driver(path, service);
 	}
 
-	inline bool unload_vuln_driver(std::wstring path, std::wstring service)
+	inline bool unload_vuln_driver(const std::wstring& path, const std::wstring& service)
 	{
 		if (!native::unload_driver(service))
 			return false;

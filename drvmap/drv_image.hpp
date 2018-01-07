@@ -22,7 +22,7 @@ namespace drvmap
 		PIMAGE_SECTION_HEADER m_section_header = nullptr;
 		
 	public:
-		explicit drv_image(std::vector<uint8_t>& image);
+		explicit drv_image(std::vector<uint8_t> image);
 		size_t size() const;
 		uintptr_t entry_point() const;
 		void map();

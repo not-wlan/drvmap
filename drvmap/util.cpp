@@ -4,7 +4,7 @@
 
 namespace drvmap::util
 {
-	void open_binary_file(const std::string & file, std::vector<uint8_t>& data)
+	void open_binary_file(const std::string& file, std::vector<uint8_t>& data)
 	{
 		std::ifstream file_stream(file, std::ios::binary);
 		file_stream.unsetf(std::ios::skipws);

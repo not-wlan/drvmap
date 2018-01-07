@@ -37,8 +37,8 @@ namespace native
 
 			status |= RegSetValueExW(subkey, L"DisplayName", 0, REG_SZ, (const BYTE *)svcName, (DWORD)(sizeof(WCHAR) * wcslen(svcName) + 1));
 			status |= RegSetValueExW(subkey, L"ErrorControl", 0, REG_DWORD, (const BYTE *)&err, sizeof(err));
-			status |= RegSetValueExW(subkey, L"Group", 0, REG_SZ, (const BYTE *)group, sizeof(WCHAR) * (wcslen(group) + 1));
-			status |= RegSetValueExW(subkey, L"ImagePath", 0, REG_SZ, (const BYTE *)path, (sizeof(WCHAR) * (wcslen(path) + 1)));
+			status |= RegSetValueExW(subkey, L"Group", 0, REG_SZ, (const BYTE *)group, sizeof(WCHAR) * ((DWORD)wcslen(group) + 1));
+			status |= RegSetValueExW(subkey, L"ImagePath", 0, REG_SZ, (const BYTE *)path, (sizeof(WCHAR) * ((DWORD)wcslen(path) + 1)));
 			status |= RegSetValueExW(subkey, L"Start", 0, REG_DWORD, (const BYTE *)&startupType, sizeof(startupType));
 			status |= RegSetValueExW(subkey, L"Type", 0, REG_DWORD, (const BYTE*)&type, sizeof(type));
 			

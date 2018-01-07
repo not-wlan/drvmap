@@ -4,10 +4,24 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="drv_image.cpp" />
+    <ClCompile Include="capcomsys.hpp">
+      <Filter>loader</Filter>
+    </ClCompile>
+    <ClCompile Include="loader.hpp">
+      <Filter>loader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.hpp" />
     <ClInclude Include="drv_image.hpp" />
     <ClInclude Include="structs.hpp" />
+    <ClInclude Include="native.hpp">
+      <Filter>loader</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="loader">
+      <UniqueIdentifier>{06d98328-acc1-4641-89e9-864713470aab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

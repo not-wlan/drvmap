@@ -25,6 +25,7 @@ namespace capcom
 		uintptr_t get_system_routine_internal(const std::wstring& name);
 	public:
 		capcom_driver();
+		void close_driver_handle();
 		void run(user_function, bool enable_interrupts = true);
 		uintptr_t get_system_routine(const std::wstring& name);
 		static uintptr_t get_kernel_module(const std::string_view kmodule);

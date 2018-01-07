@@ -75,10 +75,10 @@ int __stdcall main(const int argc, char** argv)
 	printf("[+] calling entry point at 0x%I64X\n", entry_point);
 
 	auto status = STATUS_SUCCESS;
-
-	capcom->run([&entry_point, &status, &kernel_memory, &size](auto mm_get) {
+	const auto capcom_base = capcom->get_kernel_module("Capcom");
+	capcom->run([&entry_point, &status, &kernel_memory, &capcom_base](auto mm_get) {
 		using namespace drvmap::structs;
-		status = ((PDRIVER_INITIALIZE)entry_point)((_DRIVER_OBJECT*)kernel_memory, (PUNICODE_STRING)size);
+		status = ((PDRIVER_INITIALIZE)entry_point)((_DRIVER_OBJECT*)kernel_memory, (PUNICODE_STRING)capcom_base);
 	});
 
 	if(NT_SUCCESS(status))

@@ -47,7 +47,7 @@ namespace native
 			return status;
 		}
 
-		inline std::wstring make_path(std::wstring svcName)
+		inline std::wstring make_path(const std::wstring& svcName)
 		{
 			std::wstring path = L"\\registry\\machine\\SYSTEM\\CurrentControlSet\\Services\\";
 			path += svcName;
@@ -78,7 +78,7 @@ namespace native
 		}
 	}
 
-	inline bool load_driver(std::wstring path, std::wstring service)
+	inline bool load_driver(const std::wstring& path, const std::wstring& service)
 	{
 		LSTATUS stat = internal::prepare_driver_registry(service.c_str(), path.c_str(), L"Base", 1);
 		if (stat != ERROR_SUCCESS)
@@ -100,7 +100,7 @@ namespace native
 		return ZwLoadDriver(&str) >= 0;
 	}
 
-	inline bool unload_driver(std::wstring service)
+	inline bool unload_driver(const std::wstring& service)
 	{
 		UNICODE_STRING str;
 		auto wservice = internal::make_path(service);

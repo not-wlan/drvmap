@@ -70,6 +70,11 @@ namespace capcom
 		assert(m_capcom_driver.get() != INVALID_HANDLE_VALUE);
 	}
 
+	void capcom_driver::close_driver_handle()
+	{
+		CloseHandle(m_capcom_driver.get());
+	}
+
 	void capcom_driver::run(user_function payload, const bool enable_interrupts)
 	{
 		const auto wrapper = [&payload](kernel::MmGetSystemRoutineAddressFn address)

@@ -90,6 +90,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <FullProgramDatabaseFile>false</FullProgramDatabaseFile>
       <AssemblyDebug>false</AssemblyDebug>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -118,6 +119,7 @@
     <Link>
       <SubSystem>NotSet</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -139,12 +141,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="capcomsys.hpp" />
     <ClCompile Include="drv_image.cpp" />
+    <ClCompile Include="loader.hpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="drv_image.hpp" />
+    <ClInclude Include="native.hpp" />
     <ClInclude Include="structs.hpp" />
     <ClInclude Include="util.hpp" />
   </ItemGroup>

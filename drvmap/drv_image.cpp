@@ -7,7 +7,7 @@
 
 namespace drvmap
 {
-	drv_image::drv_image(std::vector<uint8_t>& image) : m_image(std::move(image))
+	drv_image::drv_image(std::vector<uint8_t> image) : m_image(std::move(image))
 	{
 		m_dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(m_image.data());
 		assert(m_dos_header->e_magic == IMAGE_DOS_SIGNATURE);

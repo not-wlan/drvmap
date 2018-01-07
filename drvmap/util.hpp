@@ -4,5 +4,5 @@
 
 namespace drvmap::util
 {
-	void open_binary_file(const std::string & file, std::vector<uint8_t>& data);
+	void open_binary_file(const std::string& file, std::vector<uint8_t>& data);
 }

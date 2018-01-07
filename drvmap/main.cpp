@@ -33,7 +33,7 @@ int __stdcall main(const int argc, char** argv)
 	{
 		return capcom->get_export(base, ord);
 	};
-
+	sizeof(SYSTEM_INFORMATION_CLASS::SystemBasicInformation);
 	std::vector<uint8_t> driver_image;
 	drvmap::util::open_binary_file(argv[1], driver_image);
 	drvmap::drv_image driver(driver_image);

@@ -102,9 +102,16 @@ namespace native
 
 	inline bool unload_driver(const std::wstring& service)
 	{
+		HKEY key;
 		UNICODE_STRING str;
 		auto wservice = internal::make_path(service);
 		RtlInitUnicodeString(&str, wservice.c_str());
+		
+		if (!RegOpenKeyW(HKEY_LOCAL_MACHINE, L"system\\CurrentControlSet\\Services", &key))
+		{
+		    RegDeleteKeyW(key, L"Capcom");
+		    RegCloseKey(key);
+		}
 
 		return ZwUnloadDriver(&str) >= 0;
 	}

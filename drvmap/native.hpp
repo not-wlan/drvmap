@@ -112,7 +112,7 @@ namespace native
 
 		if (!RegOpenKeyW(HKEY_LOCAL_MACHINE, L"system\\CurrentControlSet\\Services", &key))
 		{
-		    RegDeleteKeyW(key, L"Capcom"));
+		    RegDeleteKeyW(key, L"Capcom");
 		    RegCloseKey(key);
 		}
 

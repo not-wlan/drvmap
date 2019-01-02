@@ -108,14 +108,17 @@ namespace native
 
 		bool isUnloaded = ZwUnloadDriver(&str) >= 0;
 
-		HKEY key;
-
-		if (!RegOpenKeyW(HKEY_LOCAL_MACHINE, L"system\\CurrentControlSet\\Services", &key))
+		if (isUnloaded)
 		{
-		    RegDeleteKeyW(key, L"Capcom");
-		    RegCloseKey(key);
-		}
+			HKEY key;
 
+			if (!RegOpenKeyW(HKEY_LOCAL_MACHINE, L"system\\CurrentControlSet\\Services", &key))
+			{
+			    RegDeleteKeyW(key, L"Capcom");
+			    RegCloseKey(key);
+			}
+		}
+		
 		return isUnloaded;
 	}
 }

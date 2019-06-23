@@ -106,6 +106,8 @@ namespace native
 		UNICODE_STRING str;
 		auto wservice = internal::make_path(service);
 		RtlInitUnicodeString(&str, wservice.c_str());
+
+		NTSTATUS status = ZwUnloadDriver(&str);
 		
 		if (!RegOpenKeyW(HKEY_LOCAL_MACHINE, L"system\\CurrentControlSet\\Services", &key))
 		{
@@ -113,6 +115,6 @@ namespace native
 		    RegCloseKey(key);
 		}
 
-		return ZwUnloadDriver(&str) >= 0;
+		return NT_SUCCESS(status);
 	}
 }

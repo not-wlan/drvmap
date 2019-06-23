@@ -107,8 +107,11 @@ namespace drvmap
 		auto image_base_delta = static_cast<uintptr_t>(static_cast<uintptr_t>(base) - (nt_headers->OptionalHeader.ImageBase));
 		auto relocation_size = total_count_bytes;
 
-		if (relocation_size == 0) {
-			printf("no relocations but flag isn't set. weird.\n");
+		// This should check (DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) too but lots of drivers do not have it set due to WDK defaults
+		const bool doRelocations = image_base_delta != 0 && relocation_size > 0;
+
+		if (!doRelocations) {
+			printf("no relocations needed\n");
 			return;
 		}
 
@@ -181,7 +184,7 @@ namespace drvmap
 
 			for (; image_thunk_data->u1.AddressOfData; image_thunk_data++, image_func_data++)
 			{
-				uintptr_t function_address = 0;
+				uintptr_t function_address;
 				const auto ordinal = (image_thunk_data->u1.Ordinal & IMAGE_ORDINAL_FLAG64) != 0;
 
 				if(ordinal)

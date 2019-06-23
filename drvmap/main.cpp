@@ -101,7 +101,7 @@ int __stdcall main(const int argc, char** argv)
 	}
 
 	capcom->close_driver_handle();
-	capcomload = loader::unload_vuln_driver(L"C:\\Windows\\Capcom.sys", L"Capcom");
+	capcomload = loader::unload_vuln_driver("C:\\Windows\\Capcom.sys", L"Capcom");
 	printf("[+] unloaded capcom driver: %i\n", capcomload);
 
 	return 0;

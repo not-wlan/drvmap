@@ -13,7 +13,7 @@ namespace loader
 		return native::load_driver(path, service);
 	}
 
-	inline bool unload_vuln_driver(const std::wstring& path, const std::wstring& service)
+	inline bool unload_vuln_driver(const std::string& path, const std::wstring& service)
 	{
 		if (!native::unload_driver(service))
 			return false;

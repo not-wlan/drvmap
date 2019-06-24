@@ -25,9 +25,10 @@ namespace drvmap
 		explicit drv_image(std::vector<uint8_t> image);
 		size_t size() const;
 		uintptr_t entry_point() const;
+		uint32_t rva_to_offset(uint32_t rva) const;
 		void map();
-		static bool process_relocation(size_t image_base_delta, uint16_t data, uint8_t* relocation_base);
-		void relocate(uintptr_t base) const;
+		static PIMAGE_BASE_RELOCATION process_relocation(uintptr_t va, uint32_t size_of_block, uint16_t* next_offset, intptr_t delta);
+		bool relocate(uintptr_t base) const;
 
 		template<typename T>
 		__forceinline T* get_rva(const unsigned long offset)

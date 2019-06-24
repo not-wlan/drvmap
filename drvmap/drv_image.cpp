@@ -27,6 +27,25 @@ namespace drvmap
 		return m_nt_headers->OptionalHeader.AddressOfEntryPoint;
 	}
 
+	uint32_t drv_image::rva_to_offset(const uint32_t rva) const
+	{
+		PIMAGE_SECTION_HEADER section_headers = IMAGE_FIRST_SECTION(m_nt_headers);
+		const uint16_t num_sections = m_nt_headers->FileHeader.NumberOfSections;
+		uint32_t offset = 0;
+		for (uint16_t i = 0; i < num_sections; ++i)
+		{
+			if (section_headers->VirtualAddress <= rva &&
+				section_headers->VirtualAddress + section_headers->Misc.VirtualSize > rva)
+			{
+				offset = rva - section_headers->VirtualAddress +
+								section_headers->PointerToRawData;
+				break;
+			}
+			section_headers++;
+		}
+		return offset;
+	}
+
 	void drv_image::map()
 	{
 
@@ -48,98 +67,128 @@ namespace drvmap
 		//m_nt_headers = (PIMAGE_NT_HEADERS64)((uintptr_t)m_dos_header + m_dos_header->e_lfanew);
 	}
 
-	bool drv_image::process_relocation(uintptr_t image_base_delta, uint16_t data, uint8_t* relocation_base)
+	PIMAGE_BASE_RELOCATION drv_image::process_relocation(uintptr_t va, uint32_t size_of_block, uint16_t* next_offset, intptr_t delta)
 	{
-#define IMR_RELOFFSET(x)			(x & 0xFFF)
+		int32_t temp;
 
-		switch (data >> 12 & 0xF)
+		while (size_of_block--)
 		{
-		case IMAGE_REL_BASED_HIGH:
-		{
-			const auto raw_address = reinterpret_cast<int16_t*>(relocation_base + IMR_RELOFFSET(data));
-			*raw_address += static_cast<unsigned long>(HIWORD(image_base_delta));
-			break;
-		}
-		case IMAGE_REL_BASED_LOW:
-		{
-			const auto raw_address = reinterpret_cast<int16_t*>(relocation_base + IMR_RELOFFSET(data));
-			*raw_address += static_cast<unsigned long>(LOWORD(image_base_delta));
-			break;
-		}
-		case IMAGE_REL_BASED_HIGHLOW:
-		{
-			const auto raw_address = reinterpret_cast<size_t*>(relocation_base + IMR_RELOFFSET(data));
-			*raw_address += static_cast<size_t>(image_base_delta);
-			break;
-		}
-		case IMAGE_REL_BASED_DIR64:
-		{
-			auto UNALIGNED raw_address = reinterpret_cast<DWORD_PTR UNALIGNED*>(relocation_base + IMR_RELOFFSET(data));
-			*raw_address += image_base_delta;
-			break;
-		}
-		case IMAGE_REL_BASED_ABSOLUTE: // No action required
-		case IMAGE_REL_BASED_HIGHADJ: // no action required
-		{
-			break;
-		}
-		default:
-		{
-			throw std::runtime_error("gay relocation!");
-			return false;
+			const uint16_t offset = *next_offset & static_cast<uint16_t>(0xfff);
+			uint8_t* fixupVa = reinterpret_cast<uint8_t*>(va + offset);
+
+			// Apply the fixups.
+			switch ((*next_offset) >> 12)
+			{
+				case IMAGE_REL_BASED_HIGHLOW:
+					// HighLow - (32-bits) relocate the high and low half of an address.
+					*reinterpret_cast<int32_t UNALIGNED*>(fixupVa) += static_cast<uint32_t>(delta);
+					break;
+
+				case IMAGE_REL_BASED_HIGH:
+					// High - (16-bits) relocate the high half of an address.
+					temp = *reinterpret_cast<uint16_t*>(fixupVa) << 16;
+					temp += static_cast<uint32_t>(delta);
+					*reinterpret_cast<uint16_t*>(fixupVa) = static_cast<USHORT>(temp >> 16);
+					break;
+
+				case IMAGE_REL_BASED_HIGHADJ:
+					// Adjust high - (16-bits) relocate the high half of an address and adjust for sign extension of low half.
+					// If the address has already been relocated then don't process it again now or information will be lost.
+					if (offset & /*LDRP_RELOCATION_FINAL*/ 0x2)
+					{
+						++next_offset;
+						--size_of_block;
+						break;
+					}
+
+					temp = *reinterpret_cast<uint16_t*>(fixupVa) << 16;
+					++next_offset;
+					--size_of_block;
+					temp += static_cast<int32_t>(*reinterpret_cast<int16_t*>(next_offset));
+					temp += static_cast<uint32_t>(delta);
+					temp += 0x8000;
+					*reinterpret_cast<uint16_t*>(fixupVa) = static_cast<uint16_t>(temp >> 16);
+
+					break;
+
+				case IMAGE_REL_BASED_LOW:
+					// Low - (16-bit) relocate the low half of an address.
+					temp = *reinterpret_cast<int16_t*>(fixupVa);
+					temp += static_cast<uint32_t>(delta);
+					*reinterpret_cast<uint16_t*>(fixupVa) = static_cast<uint16_t>(temp);
+					break;
+
+				case IMAGE_REL_BASED_DIR64:
+					*reinterpret_cast<uintptr_t UNALIGNED*>(fixupVa) += delta;
+					break;
+
+				case IMAGE_REL_BASED_ABSOLUTE:
+					// Absolute - no fixup required
+					break;
+
+				default:
+					// Illegal or unsupported relocation type
+					return nullptr;
+			}
+
+			++next_offset;
 		}
 
-		}
-#undef IMR_RELOFFSET
-
-		return true;
+		return reinterpret_cast<PIMAGE_BASE_RELOCATION>(next_offset);
 	}
 
-
-	void drv_image::relocate(uintptr_t base) const
+	bool drv_image::relocate(uintptr_t base) const
 	{
-		if (m_nt_headers->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED)
-			return;
+		ULONG relocation_size = 0;
+		const auto nt_headers = ImageNtHeader((void*)m_image.data());
 
-		ULONG total_count_bytes;
-		const auto nt_headers = ImageNtHeader((void*)m_image_mapped.data());
-		auto relocation_directory = (PIMAGE_BASE_RELOCATION)::ImageDirectoryEntryToData(nt_headers, TRUE, IMAGE_DIRECTORY_ENTRY_BASERELOC, &total_count_bytes);
-		auto image_base_delta = static_cast<uintptr_t>(static_cast<uintptr_t>(base) - (nt_headers->OptionalHeader.ImageBase));
-		auto relocation_size = total_count_bytes;
+		auto next_block = (PIMAGE_BASE_RELOCATION)::ImageDirectoryEntryToData((void*)m_image.data(), FALSE, IMAGE_DIRECTORY_ENTRY_BASERELOC, &relocation_size);
+		const intptr_t image_base_delta = static_cast<intptr_t>(base - nt_headers->OptionalHeader.ImageBase);
 
 		// This should check (DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) too but lots of drivers do not have it set due to WDK defaults
 		const bool doRelocations = image_base_delta != 0 && relocation_size > 0;
 
 		if (!doRelocations) {
 			printf("no relocations needed\n");
-			return;
+			return true;
 		}
 
-
-		assert(relocation_directory != nullptr);
-
-		void * relocation_end = reinterpret_cast<uint8_t*>(relocation_directory) + relocation_size;
-
-		while (relocation_directory < relocation_end)
+		if (next_block == nullptr || relocation_size == 0)
 		{
-			auto relocation_base = ::ImageRvaToVa(nt_headers, (void*)m_image_mapped.data(), relocation_directory->VirtualAddress, nullptr);
-
-			auto num_relocs = (relocation_directory->SizeOfBlock - 8) >> 1;
-
-			auto relocation_data = reinterpret_cast<PWORD>(relocation_directory + 1);
-
-			for (unsigned long i = 0; i < num_relocs; ++i, ++relocation_data)
-			{
-				if (process_relocation(image_base_delta, *relocation_data, (uint8_t*)relocation_base) == FALSE)
-				{
-					printf("failed to relocate!");
-					return;
-				}
-			}
-
-			relocation_directory = reinterpret_cast<PIMAGE_BASE_RELOCATION>(relocation_data);
+			// If there is no relocation directory, this is only OK if it wasn't present at some point but stripped
+			return (nt_headers->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED) == 0;
 		}
 
+		// Process the relocation blocks
+		while (relocation_size > 0)
+		{
+			uint32_t size_of_block = next_block->SizeOfBlock;
+			if (size_of_block == 0)
+				return false;
+
+			relocation_size -= size_of_block;
+			size_of_block -= sizeof(IMAGE_BASE_RELOCATION);
+			size_of_block /= sizeof(uint16_t);
+			uint16_t* next_offset = reinterpret_cast<uint16_t*>(reinterpret_cast<int8_t*>(next_block) + sizeof(IMAGE_BASE_RELOCATION));
+
+			const uintptr_t offset = rva_to_offset(next_block->VirtualAddress);
+			const uintptr_t va = reinterpret_cast<uintptr_t>(m_image.data()) + offset;
+
+			next_block = process_relocation(va,
+											size_of_block,
+											next_offset,
+											image_base_delta);
+			if (next_block == nullptr)
+			{
+				printf("failed to relocate!\n");
+				return false;
+			}
+		}
+
+		// Set the new image base in the headers
+		nt_headers->OptionalHeader.ImageBase = base;
+
+		return true;
 	}
 
 	template<typename T>

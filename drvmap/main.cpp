@@ -53,13 +53,21 @@ int __stdcall main(const int argc, char** argv)
 
 	printf("[+] imports fixed\n");
 
+	if (!driver.relocate(kernel_memory)) {
+		printf("[-] failed to do relocation fixups\n");
+
+		capcom->close_driver_handle();
+		capcomload = loader::unload_vuln_driver("C:\\Windows\\Capcom.sys", L"Capcom");
+		printf("[+] unloaded capcom driver: %i\n", capcomload);
+
+		return -1;
+	}
+
+	printf("[+] relocations fixed\n");
+
 	driver.map();
 
 	printf("[+] sections mapped in memory\n");
-
-	driver.relocate(kernel_memory);
-
-	printf("[+] relocations fixed\n");
 	
 	const auto _RtlCopyMemory = capcom->get_system_routine<drvmap::structs::RtlCopyMemoryFn>(L"RtlCopyMemory");
 	
